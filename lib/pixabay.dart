@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'constants.dart';
-
-
 
 class GalleryScreen extends StatefulWidget {
   @override
@@ -15,7 +12,8 @@ class GalleryScreen extends StatefulWidget {
 class _GalleryScreenState extends State<GalleryScreen> {
   static const _pageSize = 20;
 
-  final PagingController<int, dynamic> _pagingController = PagingController(firstPageKey: 1);
+  final PagingController<int, dynamic> _pagingController =
+      PagingController(firstPageKey: 1);
 
   @override
   void initState() {
@@ -27,7 +25,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
   Future<void> _fetchPage(int pageKey) async {
     try {
-      final response = await http.get(Uri.parse('$apiUrl?key=$apiKey&page=$pageKey&per_page=$_pageSize'));
+      final response = await http.get(
+          Uri.parse('$apiUrl?key=$apiKey&page=$pageKey&per_page=$_pageSize'));
       final Map<String, dynamic> data = jsonDecode(response.body);
       final List<dynamic> newItems = data['hits'];
 
@@ -48,11 +47,11 @@ class _GalleryScreenState extends State<GalleryScreen> {
     return Scaffold(
       backgroundColor: Colors.orange[100],
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(50.0), // Height of AppBar
+        preferredSize: Size.fromHeight(50.0),
         child: AppBar(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(17), // Circular bottom
+              bottom: Radius.circular(17),
             ),
           ),
           title: Text(
@@ -63,11 +62,11 @@ class _GalleryScreenState extends State<GalleryScreen> {
           backgroundColor: Colors.black,
         ),
       ),
-      // The rest of your body content goes here
       body: PagedGridView<int, dynamic>(
         pagingController: _pagingController,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: (MediaQuery.of(context).size.width ~/ 190).clamp(2, 4),
+          crossAxisCount:
+              (MediaQuery.of(context).size.width ~/ 190),
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           childAspectRatio: 0.8,
@@ -90,7 +89,6 @@ class _GalleryScreenState extends State<GalleryScreen> {
     );
   }
 
-
   @override
   void dispose() {
     _pagingController.dispose();
@@ -98,107 +96,162 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 }
 
-class ImageCard extends StatelessWidget {
+class ImageCard extends StatefulWidget {
   final String imageUrl;
   final int likes;
   final int views;
 
-  const ImageCard({required this.imageUrl, required this.likes, required this.views});
+  const ImageCard(
+      {required this.imageUrl, required this.likes, required this.views});
+
+  @override
+  _ImageCardState createState() => _ImageCardState();
+}
+
+class _ImageCardState extends State<ImageCard> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      elevation: 5,
-      color: Colors.black,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15.0),
-        child: Stack(
-          children: [
-            // Image with loading indicator
-            Positioned.fill(
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) {
-                    // Image fully loaded
-                    return child;
-                  } else {
-                    // Display a loading indicator while the image is being loaded
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                            : null,
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() {
+          _isHovered = true;
+        });
+      },
+      onExit: (_) {
+        setState(() {
+          _isHovered = false;
+        });
+      },
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        child: GestureDetector(
+          onTap: () => _showFullScreenImage(context, widget.imageUrl),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+            elevation: 5,
+            color: Colors.black,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15.0),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.network(
+                      widget.imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) {
+                          return child;
+                        } else {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(Icons.error, color: Colors.red),
+                        );
+                      },
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.5),
+                          ],
+                        ),
                       ),
-                    );
-                  }
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(Icons.error, color: Colors.red),
-                  ); // Display an error icon if image fails to load
-                },
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 10,
+                    left: 10,
+                    right: 10,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.favorite, color: Colors.redAccent),
+                            SizedBox(width: 6),
+                            Text(
+                              '${widget.likes}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.remove_red_eye, color: Colors.white),
+                            SizedBox(width: 6),
+                            Text(
+                              '${widget.views}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            // Gradient overlay
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Stack(
+          children: [
             Positioned.fill(
               child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.5),
-                    ],
+                color: Colors.black,
+                child: Center(
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) {
+                        return child;
+                      } else {
+                        return Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+                    },
                   ),
                 ),
               ),
             ),
-            // Likes and Views Information (only shown when image is loaded)
             Positioned(
-              bottom: 10,
-              left: 10,
-              right: 10,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Likes section
-                  Row(
-                    children: [
-                      Icon(Icons.favorite, color: Colors.redAccent),
-                      SizedBox(width: 6),
-                      Text(
-                        '$likes',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Views section
-                  Row(
-                    children: [
-                      Icon(Icons.remove_red_eye, color: Colors.white),
-                      SizedBox(width: 6),
-                      Text(
-                        '$views',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              top: 30,
+              right: 20,
+              child: IconButton(
+                icon: Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
               ),
             ),
           ],
@@ -207,5 +260,3 @@ class ImageCard extends StatelessWidget {
     );
   }
 }
-
-
